@@ -8,7 +8,6 @@ import asyncio
 
 class CSVQA(Agent):
     model: str = "llama3"
-
     async def run(self, question: str, csv_data: str):
 
         self.system_prompt = f"Use the following data to answer the user's question:\n\n{csv_data}"
