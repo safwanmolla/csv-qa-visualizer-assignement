@@ -6,6 +6,23 @@ from pydantic_ai import Agent
 import asyncio
 
 
+def process_question(question, csv_file):
+    try:
+        df = pd.read_csv(csv_file.name)
+        data_summary = df.describe(include='all').to_string()
+        response = ollama.chat(model='llama3.1-8b', messages=[{'role': 'user', 'content': f'Question: {question}\\nData:\\n{data_summary}'}])
+        response = response.get('content', 'No response from LLM.')
+        return response
+    except Exception as e:
+        return f"Error processing file: {str(e)}"
+
+def load_sample_csv():
+    try:
+        df = pd.read_csv("MELBOURNE_HOUSE_PRICES.csv")
+        return df.head().to_string()
+    except Exception as e:
+        return f"Error loading sample CSV: {str(e)}"
+
 
 with gr.Blocks() as app:
     gr.Markdown("# CSV Question Answering & Visualization")
