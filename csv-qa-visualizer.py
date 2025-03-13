@@ -6,15 +6,49 @@ from pydantic_ai import Agent
 import asyncio
 
 
+class CSVQA(Agent):
+    model: str = "llama3"
+
+    async def run(self, question: str, csv_data: str):
+
+        self.system_prompt = f"Use the following data to answer the user's question:\n\n{csv_data}"
+        return await super().run(question)
+
+
 def process_question(question, csv_file):
     try:
         df = pd.read_csv(csv_file.name)
         data_summary = df.describe(include='all').to_string()
-        response = ollama.chat(model='llama3.1-8b', messages=[{'role': 'user', 'content': f'Question: {question}\\nData:\\n{data_summary}'}])
-        response = response.get('content', 'No response from LLM.')
-        return response
+        # response = ollama.chat(model='llama3.1-8b', messages=[{'role': 'user', 'content': f'Question: {question}\\nData:\\n{data_summary}'}])
+        # response = response.get('content', 'No response from LLM.')
+        # return response
+
+        csv_qa_agent = CSVQA(model="llama3")
+        response = asyncio.run(csv_qa_agent.run(question, data_summary))
+        return response if response else "No response from LLM."
+
     except Exception as e:
         return f"Error processing file: {str(e)}"
+
+
+def generate_plot(column_name, csv_file):
+    try:
+        df = pd.read_csv(csv_file.name)
+        if column_name not in df.columns:
+            return f"Column '{column_name}' not found in CSV."
+
+        plt.figure(figsize=(6, 4))
+        df[column_name].hist(bins=30, edgecolor='black')
+        plt.title(f"Distribution of {column_name}")
+        plt.xlabel(column_name)
+        plt.ylabel("Frequency")
+
+        plot_path = "plot.png"
+        plt.savefig(plot_path)
+        plt.close()
+        return plot_path
+    except Exception as e:
+        return f"Error generating plot: {str(e)}"
 
 def load_sample_csv():
     try:
@@ -22,7 +56,6 @@ def load_sample_csv():
         return df.head().to_string()
     except Exception as e:
         return f"Error loading sample CSV: {str(e)}"
-
 
 with gr.Blocks() as app:
     gr.Markdown("# CSV Question Answering & Visualization")
